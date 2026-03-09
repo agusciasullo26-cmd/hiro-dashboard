@@ -1,0 +1,1744 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deuda Proveedores — HIRO</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0e0f11;
+    --surface: #16181c;
+    --surface2: #1e2027;
+    --border: #2a2d35;
+    --text: #e8e9ec;
+    --muted: #6b7280;
+    --red: #ef4444;
+    --red-dim: #3b1515;
+    --orange: #f97316;
+    --orange-dim: #2d1a0a;
+    --green: #22c55e;
+    --green-dim: #0d2b18;
+    --blue: #60a5fa;
+    --blue-dim: #0d1e33;
+    --yellow: #eab308;
+    --purple: #a78bfa;
+    --purple-dim: #1e1533;
+    --chat-w: 380px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; font-size: 13px; min-height: 100vh; display: flex; flex-direction: column; }
+
+  /* HEADER */
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 18px 28px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 200; flex-shrink: 0; }
+  .header-left h1 { font-family: 'DM Serif Display', serif; font-size: 20px; font-weight: 400; }
+  .header-left span { font-size: 10px; color: var(--muted); display: block; margin-top: 2px; letter-spacing: 0.5px; text-transform: uppercase; }
+  .chat-toggle-btn { display: flex; align-items: center; gap: 7px; padding: 7px 14px; background: var(--purple-dim); border: 1px solid rgba(167,139,250,0.3); border-radius: 20px; color: var(--purple); font-family: 'DM Mono', monospace; font-size: 11px; cursor: pointer; transition: all 0.2s; letter-spacing: 0.3px; }
+  .chat-toggle-btn:hover { background: rgba(167,139,250,0.15); border-color: var(--purple); }
+  .chat-toggle-btn .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--purple); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1}50%{opacity:0.4} }
+
+  /* KPI BAR */
+  .kpi-bar { display: grid; grid-template-columns: repeat(4,1fr); gap: 1px; background: var(--border); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+  .kpi { background: var(--surface); padding: 14px 22px; }
+  .kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 5px; }
+  .kpi-value { font-family: 'DM Serif Display', serif; font-size: 24px; font-weight: 400; line-height: 1; }
+  .kpi-sub { font-size: 10px; color: var(--muted); margin-top: 3px; }
+  .kpi.red .kpi-value { color: var(--red); }
+  .kpi.orange .kpi-value { color: var(--orange); }
+  .kpi.blue .kpi-value { color: var(--blue); }
+  .kpi.yellow .kpi-value { color: var(--yellow); }
+
+  /* CONTROLS */
+  .controls { padding: 12px 28px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; flex-wrap: wrap; flex-shrink: 0; }
+  .view-toggle { display: flex; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; overflow: hidden; }
+  .view-btn { padding: 6px 14px; font-family: 'DM Mono', monospace; font-size: 11px; background: transparent; color: var(--muted); border: none; cursor: pointer; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; }
+  .view-btn.active { background: var(--text); color: var(--bg); }
+  .sep { width: 1px; background: var(--border); height: 26px; }
+  select { background: var(--bg); border: 1px solid var(--border); color: var(--text); padding: 6px 10px; font-family: 'DM Mono', monospace; font-size: 11px; border-radius: 6px; cursor: pointer; outline: none; text-transform: uppercase; letter-spacing: 0.4px; }
+  select:focus { border-color: var(--blue); }
+  select option { background: var(--surface2); }
+  .status-filter { display: flex; gap: 6px; }
+  .status-pill { padding: 4px 11px; border-radius: 20px; font-size: 10px; font-family: 'DM Mono', monospace; cursor: pointer; border: 1px solid transparent; text-transform: uppercase; letter-spacing: 0.5px; transition: all 0.15s; font-weight: 500; }
+  .status-pill.all { border-color: var(--border); color: var(--muted); }
+  .status-pill.all.active { background: var(--text); color: var(--bg); border-color: var(--text); }
+  .status-pill.vencida { border-color: var(--red); color: var(--red); }
+  .status-pill.vencida.active { background: var(--red-dim); border-color: var(--red); }
+  .status-pill.por_vencer { border-color: var(--green); color: var(--green); }
+  .status-pill.por_vencer.active { background: var(--green-dim); border-color: var(--green); }
+  .status-pill.sin_fecha { border-color: var(--muted); color: var(--muted); }
+  .status-pill.sin_fecha.active { background: var(--surface2); border-color: var(--muted); color: var(--text); }
+  .total-display { margin-left: auto; font-size: 12px; color: var(--muted); }
+  .total-display strong { color: var(--text); font-weight: 500; }
+
+  /* BODY */
+  .body-wrap { display: flex; flex: 1; overflow: hidden; }
+  .main { flex: 1; padding: 22px 28px; overflow-y: auto; transition: margin-right 0.3s ease; }
+  .main.chat-open { margin-right: var(--chat-w); }
+
+  /* TABLE */
+  .table-wrap { overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  thead th { padding: 9px 12px; text-align: left; font-size: 10px; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); border-bottom: 1px solid var(--border); font-weight: 400; cursor: pointer; white-space: nowrap; user-select: none; }
+  thead th:hover { color: var(--text); }
+  thead th.sorted { color: var(--blue); }
+  thead th .sort-arrow { margin-left: 4px; opacity: 0.5; }
+  thead th.sorted .sort-arrow { opacity: 1; }
+  tbody tr { border-bottom: 1px solid var(--border); transition: background 0.1s; }
+  tbody tr:hover { background: var(--surface2); }
+  td { padding: 10px 12px; vertical-align: middle; white-space: nowrap; }
+
+  .badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 500; }
+  .badge.vencida { background: var(--red-dim); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+  .badge.por_vencer { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.2); }
+  .badge.sin_fecha { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); }
+  .badge.pagada { background: var(--green-dim); color: var(--green); border: 1px solid rgba(34,197,94,0.4); opacity: 0.7; }
+
+  .dias-badge { font-size: 11px; font-weight: 500; }
+  .dias-badge.critico { color: var(--red); }
+  .dias-badge.urgente { color: var(--orange); }
+  .dias-badge.normal { color: var(--yellow); }
+  .dias-badge.ok { color: var(--green); }
+  .dias-badge.nd { color: var(--muted); }
+
+  .amount { font-weight: 500; }
+  .amount.large { color: var(--red); }
+  .amount.strikethru { color: var(--muted); text-decoration: line-through; }
+
+  .origen-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; margin-right: 6px; }
+  .origen-dot.manual { background: var(--blue); }
+  .origen-dot.feb2026 { background: var(--orange); }
+
+  .link-btn { display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px; background: var(--surface2); border: 1px solid var(--border); border-radius: 4px; color: var(--blue); font-size: 10px; text-decoration: none; transition: all 0.15s; }
+  .link-btn:hover { background: var(--blue-dim); border-color: var(--blue); }
+  .no-link { color: var(--muted); font-size: 10px; }
+
+  /* PROVIDER CARDS */
+  .provider-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px,1fr)); gap: 14px; }
+  .provider-card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; transition: border-color 0.15s; }
+  .provider-card:hover { border-color: var(--muted); }
+  .provider-card.has-critical { border-color: rgba(239,68,68,0.3); }
+  .card-header { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; }
+  .card-name { font-family: 'DM Serif Display', serif; font-size: 14px; font-weight: 400; line-height: 1.2; flex: 1; }
+  .card-total { font-family: 'DM Serif Display', serif; font-size: 16px; font-weight: 400; text-align: right; white-space: nowrap; }
+  .card-total.critical { color: var(--red); }
+  .card-total.warning { color: var(--orange); }
+  .card-meta { padding: 7px 14px; background: var(--bg); border-bottom: 1px solid var(--border); display: flex; gap: 14px; }
+  .card-meta-item { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.4px; }
+  .card-meta-item strong { color: var(--text); font-weight: 500; }
+  .invoice-row { padding: 8px 14px; border-bottom: 1px solid rgba(42,45,53,0.6); display: grid; grid-template-columns: 1fr auto auto auto; gap: 8px; align-items: center; transition: background 0.1s; }
+  .invoice-row:last-child { border-bottom: none; }
+  .invoice-row:hover { background: var(--surface2); }
+  .invoice-row.paid-row { opacity: 0.4; }
+  .inv-num { font-size: 11px; color: var(--muted); }
+  .inv-date { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .inv-amount { font-size: 12px; font-weight: 500; text-align: right; }
+
+  .empty { text-align: center; padding: 56px 24px; color: var(--muted); }
+  .empty-icon { font-size: 32px; margin-bottom: 10px; }
+
+  /* CHAT PANEL */
+  .chat-panel { position: fixed; top: 0; right: 0; width: var(--chat-w); height: 100vh; background: var(--surface); border-left: 1px solid var(--border); display: flex; flex-direction: column; z-index: 150; transform: translateX(100%); transition: transform 0.3s ease; }
+  .chat-panel.open { transform: translateX(0); }
+  .chat-header { padding: 16px 18px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+  .chat-header-left { display: flex; align-items: center; gap: 10px; }
+  .chat-header-icon { width: 28px; height: 28px; background: var(--purple-dim); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 14px; }
+  .chat-header-title { font-size: 13px; font-weight: 500; }
+  .chat-header-sub { font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .chat-close { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 18px; line-height: 1; padding: 2px 4px; transition: color 0.15s; }
+  .chat-close:hover { color: var(--text); }
+
+  .chat-messages { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+  .msg { display: flex; gap: 10px; animation: fadeSlide 0.2s ease; }
+  @keyframes fadeSlide { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
+  .msg.user { flex-direction: row-reverse; }
+  .msg-avatar { width: 26px; height: 26px; border-radius: 6px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; }
+  .msg.assistant .msg-avatar { background: var(--purple-dim); color: var(--purple); }
+  .msg.user .msg-avatar { background: var(--surface2); color: var(--muted); border: 1px solid var(--border); font-size: 9px; }
+  .msg-bubble { max-width: 88%; padding: 10px 13px; border-radius: 10px; font-size: 12px; line-height: 1.55; }
+  .msg.assistant .msg-bubble { background: var(--surface2); border: 1px solid var(--border); border-bottom-left-radius: 3px; }
+  .msg.user .msg-bubble { background: var(--purple-dim); border: 1px solid rgba(167,139,250,0.25); border-bottom-right-radius: 3px; }
+  .msg-bubble strong { color: var(--purple); font-weight: 500; }
+  .action-tag { display: inline-block; background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: var(--green); padding: 1px 7px; border-radius: 4px; font-size: 10px; margin-right: 4px; text-transform: uppercase; letter-spacing: 0.3px; }
+
+  .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 4px 0; }
+  .typing-indicator span { width: 5px; height: 5px; background: var(--muted); border-radius: 50%; animation: bounce 1.2s infinite; }
+  .typing-indicator span:nth-child(2) { animation-delay: 0.2s; }
+  .typing-indicator span:nth-child(3) { animation-delay: 0.4s; }
+  @keyframes bounce { 0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-4px)} }
+
+  .chat-suggestions { padding: 0 16px 10px; display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+  .chat-suggestions-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+  .suggestion-chip { padding: 6px 10px; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--muted); font-size: 11px; cursor: pointer; transition: all 0.15s; text-align: left; font-family: 'DM Mono', monospace; }
+  .suggestion-chip:hover { border-color: var(--purple); color: var(--text); background: var(--purple-dim); }
+
+  .chat-input-area { padding: 12px 16px; border-top: 1px solid var(--border); display: flex; gap: 8px; align-items: flex-end; flex-shrink: 0; }
+  .chat-input { flex: 1; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'DM Mono', monospace; font-size: 12px; padding: 9px 12px; resize: none; outline: none; line-height: 1.4; min-height: 38px; max-height: 100px; transition: border-color 0.15s; }
+  .chat-input:focus { border-color: var(--purple); }
+  .chat-input::placeholder { color: var(--muted); }
+  .chat-send { width: 36px; height: 36px; background: var(--purple); border: none; border-radius: 8px; color: white; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all 0.15s; flex-shrink: 0; }
+  .chat-send:hover { background: #8b5cf6; }
+  .chat-send:disabled { background: var(--border); cursor: not-allowed; color: var(--muted); }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* ── MAIN SECTION TABS ── */
+.main-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px 20px 0;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+}
+.main-tab {
+  padding: 8px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--muted);
+  font-family: inherit;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  margin-bottom: -1px;
+}
+.main-tab:hover { color: var(--text); }
+.main-tab.active { color: var(--text); border-bottom-color: var(--green); font-weight: 500; }
+
+/* ── PERSONAL SECTION ── */
+#sectionPersonal { display: none; padding: 20px; max-width: 960px; margin: 0 auto; }
+#sectionProveedores { display: block; }
+
+.personal-kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+@media(max-width:700px){ .personal-kpis { grid-template-columns: repeat(2,1fr); } }
+
+.p-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+.p-kpi-label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.p-kpi-value { font-size: 24px; font-weight: 700; }
+.p-kpi-value.red { color: var(--red); }
+.p-kpi-value.green { color: var(--green); }
+.p-kpi-value.yellow { color: var(--yellow); }
+.p-kpi-sub { font-size: 11px; color: var(--muted); margin-top: 4px; }
+
+.p-section-title {
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px;
+  color: var(--muted); margin: 24px 0 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.p-section-title::after { content:''; flex:1; height:1px; background:var(--border); }
+
+.employee-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 14px; }
+
+.emp-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  transition: border-color 0.15s;
+}
+.emp-card:hover { border-color: var(--green); }
+.emp-card-header {
+  padding: 14px 16px 12px;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: flex-start;
+}
+.emp-name { font-size: 14px; font-weight: 600; }
+.emp-role { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.emp-debt-badge {
+  padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 600;
+}
+.emp-debt-badge.ok { background: rgba(34,197,94,0.1); color: var(--green); }
+.emp-debt-badge.warn { background: rgba(234,179,8,0.1); color: var(--yellow); }
+.emp-debt-badge.danger { background: rgba(239,68,68,0.1); color: var(--red); }
+
+.emp-card-body { padding: 14px 16px; }
+.emp-pay-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.emp-pay-label { font-size: 11px; color: var(--muted); }
+.emp-pay-value { font-size: 13px; font-weight: 500; }
+
+.emp-months { margin-top: 12px; }
+.emp-months-title { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 8px; }
+.months-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.month-chip {
+  padding: 3px 8px; border-radius: 6px; font-size: 10px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; border: 1px solid transparent;
+  user-select: none;
+}
+.month-chip.paid-nomina { background: rgba(34,197,94,0.12); color: var(--green); border-color: rgba(34,197,94,0.2); }
+.month-chip.paid-cash { background: rgba(96,165,250,0.12); color: var(--blue); border-color: rgba(96,165,250,0.2); }
+.month-chip.paid-both { background: rgba(34,197,94,0.2); color: var(--green); border-color: var(--green); }
+.month-chip.unpaid { background: rgba(239,68,68,0.08); color: var(--red); border-color: rgba(239,68,68,0.15); }
+.month-chip.partial { background: rgba(234,179,8,0.1); color: var(--yellow); border-color: rgba(234,179,8,0.2); }
+
+.emp-card-footer {
+  padding: 10px 16px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px;
+}
+.emp-action-btn {
+  flex: 1; padding: 7px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 7px; color: var(--muted); font-family: inherit; font-size: 11px;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.emp-action-btn:hover { border-color: var(--green); color: var(--green); }
+
+/* Modal */
+.p-modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.7); z-index: 1000;
+  align-items: center; justify-content: center;
+}
+.p-modal-overlay.open { display: flex; }
+.p-modal {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 14px; width: 480px; max-width: 95vw; max-height: 85vh;
+  overflow-y: auto; padding: 24px;
+}
+.p-modal h3 { font-size: 16px; margin-bottom: 18px; }
+.p-modal-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.p-modal-field { display: flex; flex-direction: column; gap: 5px; }
+.p-modal-field.full { grid-column: 1/-1; }
+.p-modal-field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+.p-modal-field input, .p-modal-field select {
+  background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+  color: var(--text); font-family: inherit; font-size: 13px; padding: 8px 12px;
+}
+.p-modal-field input:focus, .p-modal-field select:focus {
+  outline: none; border-color: var(--green);
+}
+.p-modal-actions { display: flex; gap: 10px; margin-top: 20px; justify-content: flex-end; }
+.p-btn { padding: 9px 18px; border-radius: 8px; font-family: inherit; font-size: 13px; cursor: pointer; border: none; }
+.p-btn.primary { background: var(--green); color: #000; font-weight: 600; }
+.p-btn.secondary { background: var(--bg); color: var(--muted); border: 1px solid var(--border); }
+.p-btn.danger { background: rgba(239,68,68,0.1); color: var(--red); border: 1px solid rgba(239,68,68,0.2); }
+
+.month-detail-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin: 12px 0; }
+.month-detail-item { background: var(--bg); border-radius: 8px; padding: 10px 12px; border: 1px solid var(--border); }
+.month-detail-item label { font-size: 10px; color: var(--muted); display: block; margin-bottom: 5px; }
+.month-detail-item input[type=checkbox] { margin-right: 5px; }
+.month-detail-item input[type=number] { width: 100%; background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-size: 12px; padding: 4px 8px; font-family: inherit; }
+
+.extras-section { margin-top: 8px; }
+.extra-row { display: flex; align-items: center; gap: 10px; padding: 10px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 8px; }
+.extra-row span { flex: 1; font-size: 13px; }
+.add-extra-btn { display: flex; align-items: center; gap: 8px; padding: 10px 16px; background: transparent; border: 1px dashed var(--border); border-radius: 8px; color: var(--muted); font-family: inherit; font-size: 13px; cursor: pointer; width: 100%; transition: all 0.15s; }
+.add-extra-btn:hover { border-color: var(--green); color: var(--green); }
+
+
+/* ── EMPLOYEE DETAIL MODAL ── */
+.emp-detail-modal { width: 560px; }
+
+/* ── GROUP SUMMARY CARDS ── */
+.group-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin-bottom: 24px; }
+@media(max-width:800px){ .group-cards { grid-template-columns: 1fr; } }
+.group-card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  padding: 18px 20px; cursor: pointer; transition: all 0.15s; position: relative; overflow: hidden;
+}
+.group-card:hover { border-color: var(--text); transform: translateY(-2px); }
+.group-card.active { border-color: var(--green); }
+.group-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+}
+.group-card.g-lucas::before { background: var(--purple); }
+.group-card.g-madrid::before { background: var(--blue); }
+.group-card.g-argentina::before { background: var(--orange); }
+.group-card-title { font-size: 13px; font-weight: 600; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.group-card.g-lucas .group-card-title { color: var(--purple); }
+.group-card.g-madrid .group-card-title { color: var(--blue); }
+.group-card.g-argentina .group-card-title { color: var(--orange); }
+.group-card-sub { font-size: 10px; color: var(--muted); margin-bottom: 12px; }
+.group-card-debt { font-size: 22px; font-weight: 700; color: var(--red); }
+.group-card-debt.ok { color: var(--green); }
+.group-card-detail { font-size: 10px; color: var(--muted); margin-top: 6px; }
+.group-card-people { display: flex; gap: 4px; margin-top: 10px; flex-wrap: wrap; }
+.group-card-chip { padding: 2px 8px; background: var(--bg); border: 1px solid var(--border); border-radius: 10px; font-size: 10px; color: var(--muted); }
+.debt-month-block { margin-bottom: 16px; }
+.debt-month-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 8px 12px; background: var(--bg); border-radius: 8px 8px 0 0;
+  border: 1px solid var(--border); border-bottom: none;
+  font-size: 12px; font-weight: 600;
+}
+.debt-month-header .month-total { color: var(--red); font-weight: 700; }
+.debt-month-header .month-total.paid { color: var(--green); }
+.debt-item-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 12px; border: 1px solid var(--border); border-top: none;
+  font-size: 12px;
+}
+.debt-item-row:last-child { border-radius: 0 0 8px 8px; }
+.debt-item-row:hover { background: rgba(255,255,255,0.02); }
+.debt-item-concepto { flex: 1; color: var(--text); }
+.debt-item-importe { font-weight: 600; min-width: 70px; text-align: right; }
+.debt-item-status {
+  min-width: 80px; text-align: center; padding: 2px 8px;
+  border-radius: 12px; font-size: 10px; font-weight: 600; cursor: pointer;
+}
+.debt-item-status.paid { background: rgba(34,197,94,0.12); color: var(--green); }
+.debt-item-status.unpaid { background: rgba(239,68,68,0.08); color: var(--red); }
+.debt-summary-bar {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px; background: var(--bg);
+  border-radius: 10px; margin-bottom: 16px;
+  border: 1px solid var(--border);
+}
+.debt-summary-total { font-size: 22px; font-weight: 700; color: var(--red); }
+.debt-summary-label { font-size: 11px; color: var(--muted); margin-bottom: 2px; }
+.add-debt-row { display: flex; gap: 8px; margin-top: 12px; }
+.add-debt-row input {
+  flex: 1; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 8px; color: var(--text); font-family: inherit;
+  font-size: 12px; padding: 7px 10px;
+}
+.add-debt-row input:focus { outline: none; border-color: var(--green); }
+
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1 id="headerTitle">Deuda Proveedores</h1>
+    <span>Restaurante HIRO · 08/03/2026</span>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px">
+    <span id="syncIndicator" style="font-size:10px;color:var(--muted);cursor:pointer" onclick="uploadAllToSheets()" title="Clic para subir todos los datos a Sheets">⬤ Sin conectar</span>
+    <button class="chat-toggle-btn" onclick="toggleChat()">
+      <div class="dot"></div>
+      Asistente Contable
+    </button>
+  </div>
+</div>
+<div class="main-tabs">
+  <button class="main-tab active" id="mainTabProveedores" onclick="setMainSection('proveedores')">🧾 Proveedores</button>
+  <button class="main-tab" id="mainTabPersonal" onclick="setMainSection('personal')">👥 Personal</button>
+</div>
+
+<div class="kpi-bar" id="kpiBar"></div>
+
+<div class="controls">
+  <div class="view-toggle">
+    <button class="view-btn active" id="btnOverview" onclick="setView('overview')">Overview</button>
+    <button class="view-btn" id="btnProvider" onclick="setView('provider')">Por Proveedor</button>
+  </div>
+  <div class="sep"></div>
+  <div class="status-filter">
+    <button class="status-pill all active" onclick="setStatus('all')">Todas</button>
+    <button class="status-pill vencida" onclick="setStatus('vencida')">Vencidas</button>
+    <button class="status-pill por_vencer" onclick="setStatus('por_vencer')">Por vencer</button>
+    <button class="status-pill sin_fecha" onclick="setStatus('sin_fecha')">Sin fecha</button>
+  </div>
+  <div class="sep"></div>
+  <select id="provFilter" onchange="setProvider(this.value)">
+    <option value="">Todos los proveedores</option>
+  </select>
+  <div class="total-display" id="totalDisplay"></div>
+</div>
+
+<div id="sectionProveedores">
+<div class="body-wrap">
+  <div class="main" id="mainContent"></div>
+
+
+</div><!-- /body-wrap -->
+</div><!-- /sectionProveedores -->
+
+<!-- ══════════════════════════════════ -->
+<!-- SECCIÓN PERSONAL -->
+<!-- ══════════════════════════════════ -->
+<div id="sectionPersonal">
+  <div id="personalContent" style="padding:20px;max-width:960px;margin:0 auto">
+    <!-- Group Summary Cards -->
+    <div class="p-section-title" style="margin-top:0">Resumen por grupo</div>
+    <div class="group-cards" id="groupCards"></div>
+
+    <!-- KPIs -->
+    <div class="p-section-title">Resumen general</div>
+    <div class="personal-kpis" id="personalKpis"></div>
+
+    <div class="p-section-title" id="employeeGridTitle">Equipo completo</div>
+    <div class="employee-grid" id="employeeGrid"></div>
+
+    <div class="p-section-title">Personal eventual</div>
+    <div class="extras-section" id="extrasSection"></div>
+    <button class="add-extra-btn" onclick="openAddExtra()">＋ Añadir personal eventual</button>
+  </div>
+</div>
+
+
+<!-- MODAL FICHA EMPLEADO DETALLE -->
+<div class="p-modal-overlay" id="empDetailModal">
+  <div class="p-modal emp-detail-modal">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <h3 id="empDetailTitle" style="margin:0">Ficha empleado</h3>
+      <button class="p-btn secondary" style="padding:6px 12px" onclick="closeModal('empDetailModal')">✕</button>
+    </div>
+    <div id="empDetailBody"></div>
+  </div>
+</div>
+
+<!-- MODAL DETALLE MES EMPLEADO -->
+<div class="p-modal-overlay" id="monthModal">
+  <div class="p-modal">
+    <h3 id="monthModalTitle">Detalle de pago</h3>
+    <div id="monthModalBody"></div>
+    <div class="p-modal-actions">
+      <button class="p-btn secondary" onclick="closeModal('monthModal')">Cancelar</button>
+      <button class="p-btn primary" onclick="saveMonthDetail()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDITAR EMPLEADO -->
+<div class="p-modal-overlay" id="empModal">
+  <div class="p-modal">
+    <h3 id="empModalTitle">Empleado</h3>
+    <div class="p-modal-grid">
+      <div class="p-modal-field full">
+        <label>Nombre completo</label>
+        <input type="text" id="empName" placeholder="Nombre Apellido">
+      </div>
+      <div class="p-modal-field full">
+        <label>Rol / Puesto</label>
+        <input type="text" id="empRole" placeholder="Head Chef, Camarero...">
+      </div>
+      <div class="p-modal-field">
+        <label>Nómina mensual (€)</label>
+        <input type="number" id="empNomina" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="p-modal-field">
+        <label>Cash mensual (€)</label>
+        <input type="number" id="empCash" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="p-modal-field full">
+        <label>Notas</label>
+        <input type="text" id="empNotes" placeholder="Observaciones...">
+      </div>
+    </div>
+    <div class="p-modal-actions">
+      <button class="p-btn danger" id="empDeleteBtn" onclick="deleteEmployee()" style="margin-right:auto">Eliminar</button>
+      <button class="p-btn secondary" onclick="closeModal('empModal')">Cancelar</button>
+      <button class="p-btn primary" onclick="saveEmployee()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL AÑADIR EXTRA -->
+<div class="p-modal-overlay" id="extraModal">
+  <div class="p-modal">
+    <h3>Personal eventual</h3>
+    <div class="p-modal-grid">
+      <div class="p-modal-field full">
+        <label>Nombre</label>
+        <input type="text" id="extraName" placeholder="Nombre">
+      </div>
+      <div class="p-modal-field full">
+        <label>Rol</label>
+        <input type="text" id="extraRole" placeholder="Camarero extra, Cocinero...">
+      </div>
+      <div class="p-modal-field">
+        <label>Importe (€)</label>
+        <input type="number" id="extraAmount" placeholder="0" min="0" step="0.01">
+      </div>
+      <div class="p-modal-field">
+        <label>Fecha</label>
+        <input type="date" id="extraDate">
+      </div>
+      <div class="p-modal-field full">
+        <label>Notas</label>
+        <input type="text" id="extraNotes" placeholder="Turno, evento...">
+      </div>
+    </div>
+    <div class="p-modal-actions">
+      <button class="p-btn secondary" onclick="closeModal('extraModal')">Cancelar</button>
+      <button class="p-btn primary" onclick="saveExtra()">Añadir</button>
+    </div>
+  </div>
+</div>
+
+<div class="chat-panel" id="chatPanel">
+    <div class="chat-header">
+      <div class="chat-header-left">
+        <div class="chat-header-icon">✦</div>
+        <div>
+          <div class="chat-header-title">Asistente Contable HIRO</div>
+          <div class="chat-header-sub">Tu contable digital · HIRO</div>
+        </div>
+      </div>
+      <button class="chat-close" onclick="toggleChat()">✕</button>
+    </div>
+
+    <div class="chat-messages" id="chatMessages">
+      <div class="msg assistant">
+        <div class="msg-avatar">✦</div>
+        <div class="msg-bubble">
+          Hola. Tengo acceso completo a las <strong>46 facturas impagadas</strong> de HIRO.<br><br>
+          Puedo responder preguntas sobre la deuda y también <strong>corregir datos en tiempo real</strong>: marcar facturas como pagadas, cambiar importes, actualizar fechas de vencimiento, añadir notas.<br><br>
+          ¿En qué te ayudo?
+        </div>
+      </div>
+    </div>
+
+    <div class="chat-suggestions" id="chatSuggestions">
+      <div class="chat-suggestions-label">Sugerencias</div>
+      <button class="suggestion-chip" onclick="sendSuggestion(this)">¿Cuánto le debo a Alma Vinos en total?</button>
+      <button class="suggestion-chip" onclick="sendSuggestion(this)">Marca la factura 9526/25 como pagada</button>
+      <button class="suggestion-chip" onclick="sendSuggestion(this)">¿Cuáles son las 3 deudas más urgentes?</button>
+      <button class="suggestion-chip" onclick="sendSuggestion(this)">¿Qué facturas no tienen fecha de vencimiento?</button>
+    </div>
+
+    <div class="chat-input-area">
+      <textarea class="chat-input" id="chatInput" placeholder="Pregunta o pide una corrección..." rows="1"
+        onkeydown="handleKey(event)" oninput="autoResize(this)"></textarea>
+      <button class="chat-send" id="chatSend" onclick="sendMessage()">↑</button>
+    </div>
+  </div>
+</div>
+
+<script>
+
+// ════════════════════════════════════
+// GOOGLE SHEETS CONFIG
+// ════════════════════════════════════
+const SHEETS_API_URL = 'https://script.google.com/macros/s/AKfycbyUD2x5dOhZf7WBrWmJTsp_47LubZR4Dvvip08E3RRijvH52yd6JjBzi5tchh2S0CFD/exec'; // ← pega aquí tu URL de Apps Script
+
+let sheetsEnabled = SHEETS_API_URL !== 'PEGA_AQUI_TU_URL';
+let syncStatus = 'idle'; // idle | syncing | ok | error
+
+// Cargar datos desde Sheets
+async function loadFromSheets() {
+  if (!sheetsEnabled) return false;
+  try {
+    setSyncStatus('syncing');
+    const r = await fetch(SHEETS_API_URL + '?action=get');
+    const d = await r.json();
+    if (d.ok && d.data && d.data.length > 0) {
+      DATA = d.data;
+      setSyncStatus('ok');
+      return true;
+    }
+    setSyncStatus('error');
+    return false;
+  } catch(e) {
+    setSyncStatus('error');
+    return false;
+  }
+}
+
+// Guardar estado pagada en Sheets
+async function syncPaidToSheets(numero, pagada) {
+  if (!sheetsEnabled) return;
+  try {
+    await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'mark_paid', numero, pagada })
+    });
+  } catch(e) { console.warn('Sheets sync error', e); }
+}
+
+// Guardar importe en Sheets
+async function syncAmountToSheets(numero, total) {
+  if (!sheetsEnabled) return;
+  try {
+    await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update_amount', numero, total })
+    });
+  } catch(e) {}
+}
+
+// Guardar fecha en Sheets
+async function syncDateToSheets(numero, vencimiento) {
+  if (!sheetsEnabled) return;
+  try {
+    await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'update_due_date', numero, vencimiento })
+    });
+  } catch(e) {}
+}
+
+// Guardar nota en Sheets
+async function syncNoteToSheets(numero, nota) {
+  if (!sheetsEnabled) return;
+  try {
+    await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add_note', numero, nota })
+    });
+  } catch(e) {}
+}
+
+// Carga inicial de todas las facturas a Sheets
+async function uploadAllToSheets() {
+  if (!sheetsEnabled) { alert('Primero pega tu URL de Apps Script en el código.'); return; }
+  setSyncStatus('syncing');
+  try {
+    // Subir proveedores
+    const r1 = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'save_all', data: DATA })
+    });
+    // Subir personal
+    const r2 = await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'save_personal', data: PERSONAL_DATA })
+    });
+    const d1 = await r1.json();
+    const d2 = await r2.json();
+    if (d1.ok && d2.ok) {
+      setSyncStatus('ok');
+      showSyncToast('✅ Proveedores + Personal sincronizados');
+    } else {
+      setSyncStatus('error');
+    }
+  } catch(e) { setSyncStatus('error'); }
+}
+
+// ── PERSONAL SYNC ──
+async function loadPersonalFromSheets() {
+  if (!sheetsEnabled) return false;
+  try {
+    const r = await fetch(SHEETS_API_URL + '?action=get_personal');
+    const d = await r.json();
+    if (d.ok && d.data && d.data.length > 0) {
+      // Personal se guarda como JSON en una sola celda
+      const parsed = typeof d.data[0].personal_data === 'string' 
+        ? JSON.parse(d.data[0].personal_data) 
+        : d.data[0];
+      if (parsed && parsed.employees) {
+        PERSONAL_DATA = parsed;
+        return true;
+      }
+    }
+    return false;
+  } catch(e) { return false; }
+}
+
+async function syncPersonalToSheets() {
+  if (!sheetsEnabled) return;
+  try {
+    await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'save_personal', data: PERSONAL_DATA })
+    });
+  } catch(e) { console.warn('Personal sync error', e); }
+}
+
+async function syncToggleDebtItem(empId, monthKey, idx, pagado) {
+  if (!sheetsEnabled) return;
+  try {
+    await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'toggle_debt_item', empId, monthKey, itemIndex: idx, pagado })
+    });
+  } catch(e) {}
+}
+
+async function syncAddDebtItem(empId, monthKey, concepto, importe) {
+  if (!sheetsEnabled) return;
+  try {
+    await fetch(SHEETS_API_URL, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'add_debt_item', empId, monthKey, concepto, importe })
+    });
+  } catch(e) {}
+}
+
+function setSyncStatus(s) {
+  syncStatus = s;
+  const el = document.getElementById('syncIndicator');
+  if (!el) return;
+  const states = {
+    idle: { color: 'var(--muted)', text: '⬤ Sin conectar' },
+    syncing: { color: 'var(--yellow)', text: '⬤ Sincronizando...' },
+    ok: { color: 'var(--green)', text: '⬤ Google Sheets' },
+    error: { color: 'var(--red)', text: '⬤ Error conexión' }
+  };
+  const st = states[s] || states.idle;
+  el.style.color = st.color;
+  el.textContent = st.text;
+}
+
+function showSyncToast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#16181c;border:1px solid #2a2d35;color:#e8e9ec;padding:10px 18px;border-radius:8px;font-size:12px;z-index:9999;animation:fadeSlide 0.2s ease';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+
+
+// ════════════════════════════════════
+// PERSONAL / NÓMINAS
+// ════════════════════════════════════
+
+// Meses del año
+const MESES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+const MESES_FULL = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const CURRENT_MONTH = 2; // Marzo = índice 2
+const CURRENT_YEAR = 2026;
+
+// Estado global de personal
+let PERSONAL_DATA = {
+  employees: [
+    {
+      id: 'emp1', name: 'Lucas Gabriel Ciasullo', role: 'Head Chef',
+      group: 'lucas',
+      nomina: 1370.27, cash: 2329.73, notes: 'Sueldo pactado €3,700/mes · Nómina líquido €1,370.27 · Cash €2,329.73',
+      type: 'fixed',
+      payments: {
+        '2025-12': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Confirmado por Lucas 25/02/2026. Total €687.04', extras: [
+          { concepto: 'Propinas diciembre', importe: 116, pagado: false },
+          { concepto: 'Frutas Eloy', importe: 59.04, pagado: false },
+          { concepto: 'Página web', importe: 300, pagado: false },
+          { concepto: 'Nómina diciembre', importe: 212, pagado: false },
+        ]},
+        '2026-01': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Confirmado por Lucas 25/02/2026. Total €2,376.08', extras: [
+          { concepto: 'Sueldo enero', importe: 1666, pagado: false },
+          { concepto: 'Propinas enero', importe: 141, pagado: false },
+          { concepto: 'Copias', importe: 9, pagado: false },
+          { concepto: 'Platos', importe: 237.16, pagado: false },
+          { concepto: 'Carne', importe: 158.32, pagado: false },
+          { concepto: 'Santo Bakehouse (adelanto)', importe: 165.60, pagado: false },
+        ]},
+        '2026-02': { nomina: true, cash: false, horasExtra: 0, propinas: 0, notas: 'Nómina pagada por banco. Cash + resto pendiente. Se deben €3,700 íntegros. Abonados €70 en retiros (6/3 y 8/3).', extras: [
+          { concepto: 'Sueldo febrero completo', importe: 3630, pagado: false },
+          { concepto: 'Retiro efectivo 6/3 (a cuenta)', importe: 50, pagado: true },
+          { concepto: 'Retiro efectivo 8/3 (a cuenta)', importe: 20, pagado: true },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    },
+    {
+      id: 'emp2', name: 'Joaquín Veiga', role: 'Camarero / Encargado',
+      group: 'madrid',
+      nomina: 1500, cash: 450, notes: 'Nómina €1,500 + Cash €450 (€300 encargado + €150 servilletas). Confirmado con nómina feb 2026. Coste empresa: €2,433.39. Antigüedad: 17/07/2025.',
+      type: 'fixed',
+      payments: {
+        '2026-01': { nomina: true, cash: true, horasExtra: 0, propinas: 0, notas: 'Al día', extras: [] },
+        '2026-02': { nomina: true, cash: false, horasExtra: 0, propinas: 0, notas: 'Nómina pagada. Cash pendiente.', extras: [
+          { concepto: 'Extra encargado (cash)', importe: 300, pagado: false },
+          { concepto: 'Limpieza servilletas (cash)', importe: 150, pagado: false },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    },
+    {
+      id: 'emp6', name: 'José Luis Fajardo Reyes', role: 'Ayudante Cocina',
+      group: 'madrid',
+      nomina: 1347.13, cash: 150, notes: 'Nómina líquido €1,347.13 + Plus efectivo €150/mes. Coste empresa: €2,046.26. Antigüedad: 15/01/2025.',
+      type: 'fixed',
+      payments: {
+        '2026-01': { nomina: true, cash: true, horasExtra: 0, propinas: 0, notas: 'Al día', extras: [] },
+        '2026-02': { nomina: true, cash: false, horasExtra: 0, propinas: 0, notas: 'Nómina pagada. Plus cash pendiente.', extras: [
+          { concepto: 'Plus efectivo febrero', importe: 150, pagado: false },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    },
+    {
+      id: 'emp3', name: 'Judith', role: 'Limpieza',
+      group: 'madrid',
+      nomina: 0, cash: 800, notes: 'Todo en efectivo',
+      type: 'fixed',
+      payments: {
+        '2026-01': { nomina: true, cash: false, horasExtra: 0, propinas: 0, notas: '' },
+        '2026-02': { nomina: true, cash: false, horasExtra: 0, propinas: 0, notas: '' },
+        '2026-03': { nomina: true, cash: false, horasExtra: 0, propinas: 0, notas: '' },
+      }
+    },
+    {
+      id: 'emp4', name: 'Graciela', role: 'Camarera',
+      group: 'madrid',
+      nomina: 0, cash: 1390, notes: 'Todo en efectivo · Sueldo fijo €1,390/mes · Sin extras',
+      type: 'fixed',
+      payments: {
+        '2026-01': { nomina: false, cash: true, horasExtra: 0, propinas: 0, notas: 'Al día', extras: [] },
+        '2026-02': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Cobrado €940 en pagos parciales semana 2-8/3. Pendiente €450.', extras: [
+          { concepto: 'Pago 4/3', importe: 140, pagado: true },
+          { concepto: 'Pago 5/3', importe: 100, pagado: true },
+          { concepto: 'Pago 6/3', importe: 300, pagado: true },
+          { concepto: 'Pago 6/3 (2)', importe: 50, pagado: true },
+          { concepto: 'Pago 8/3', importe: 350, pagado: true },
+          { concepto: 'Pendiente febrero', importe: 450, pagado: false },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    },
+    {
+      id: 'emp5', name: 'Pilar', role: 'Camarera (por horas)',
+      group: 'madrid',
+      nomina: 0, cash: 0, notes: 'Cobra por horas a €13/h · Todo en efectivo · Sin nómina',
+      type: 'fixed',
+      payments: {
+        '2025-12': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Deuda arrastrada de semana anterior sin detalle', extras: [
+          { concepto: 'Trabajo semana ~14/01 o anterior', importe: 398, pagado: true },
+        ]},
+        '2026-01': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Generado ene: €871 (sem 21 + sem 28) · Cobrado: €410 · Arrastrado: €398 · Deuda al 02/02: €859', extras: [
+          { concepto: 'Sem 21-25/01 (36h × €13)', importe: 468, pagado: true },
+          { concepto: 'Pago 25/01', importe: 290, pagado: true },
+          { concepto: 'Pago 26/01', importe: 120, pagado: true },
+          { concepto: 'Sem 28/01-01/02 (31h × €13)', importe: 403, pagado: true },
+          { concepto: 'Deuda enero arrastrada a feb', importe: 859, pagado: false },
+        ]},
+        '2026-02': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Trabajo feb puro: €1,602.90 · Cobrado feb: €1,540 · Deuda feb neta: €62.90 · Deuda total con arrastre ene: €921.90', extras: [
+          { concepto: 'Sem 04-08/02 (36.5h)', importe: 471.90, pagado: true },
+          { concepto: '11-12/02 (16h × €13)', importe: 208, pagado: true },
+          { concepto: '13-15/02 (21h × €13)', importe: 273, pagado: true },
+          { concepto: 'Sem 18-22/02 (29h × €13)', importe: 377, pagado: true },
+          { concepto: 'Sem 25/02-01/03 (21h × €13)', importe: 273, pagado: true },
+          { concepto: 'Pago 02/02', importe: 150, pagado: true },
+          { concepto: 'Pago 15/02', importe: 450, pagado: true },
+          { concepto: 'Pago 21/02', importe: 70, pagado: true },
+          { concepto: 'Pago 22/02', importe: 200, pagado: true },
+          { concepto: 'Pago 23/02', importe: 400, pagado: true },
+          { concepto: 'Pago 08/03', importe: 270, pagado: true },
+          { concepto: 'Saldo pendiente feb (trabajo - pagos)', importe: 62.90, pagado: false },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    },
+    {
+      id: 'emp7', name: 'Lola', role: 'Marketing',
+      group: 'argentina',
+      nomina: 0, cash: 900, notes: 'Equipo Argentina · Marketing · €900/mes',
+      type: 'fixed',
+      payments: {
+        '2026-01': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo enero', importe: 900, pagado: false },
+        ]},
+        '2026-02': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo febrero', importe: 900, pagado: false },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    },
+    {
+      id: 'emp8', name: 'Flor', role: 'Marketing',
+      group: 'argentina',
+      nomina: 0, cash: 900, notes: 'Equipo Argentina · Marketing · €900/mes',
+      type: 'fixed',
+      payments: {
+        '2026-01': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo enero', importe: 900, pagado: false },
+        ]},
+        '2026-02': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo febrero', importe: 900, pagado: false },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    },
+    {
+      id: 'emp9', name: 'Agustín', role: 'Administración',
+      group: 'argentina',
+      nomina: 0, cash: 1500, notes: 'Equipo Argentina · Administración · €1,500/mes',
+      type: 'fixed',
+      payments: {
+        '2026-01': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo enero', importe: 1500, pagado: false },
+        ]},
+        '2026-02': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo febrero', importe: 1500, pagado: false },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    },
+    {
+      id: 'emp10', name: 'Mariana', role: 'Administración',
+      group: 'argentina',
+      nomina: 0, cash: 600, notes: 'Equipo Argentina · Administración · €600/mes',
+      type: 'fixed',
+      payments: {
+        '2026-01': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo enero', importe: 600, pagado: false },
+        ]},
+        '2026-02': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo febrero', importe: 600, pagado: false },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    },
+    {
+      id: 'emp11', name: 'Alicia', role: 'Administración',
+      group: 'argentina',
+      nomina: 0, cash: 600, notes: 'Equipo Argentina · Administración · €600/mes',
+      type: 'fixed',
+      payments: {
+        '2026-01': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo enero', importe: 600, pagado: false },
+        ]},
+        '2026-02': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: 'Pendiente cobrar', extras: [
+          { concepto: 'Sueldo febrero', importe: 600, pagado: false },
+        ]},
+        '2026-03': { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] },
+      }
+    }
+  ],
+  extras: []
+};
+
+let currentMainSection = 'proveedores';
+let editingEmpId = null;
+let editingMonthKey = null;
+let editingMonthEmpId = null;
+let activeGroup = 'all'; // 'all', 'lucas', 'madrid', 'argentina'
+
+const GROUP_CONFIG = {
+  lucas: { label: '👨‍🍳 Lucas', sub: 'Head Chef', css: 'g-lucas' },
+  madrid: { label: '🇪🇸 Equipo Madrid', sub: 'Joaquín, José Luis, Judith, Graciela, Pilar', css: 'g-madrid' },
+  argentina: { label: '🇦🇷 Equipo Argentina', sub: 'Lola, Flor, Agustín, Mariana, Alicia', css: 'g-argentina' },
+};
+
+function renderGroupCards() {
+  const groups = ['lucas', 'madrid', 'argentina'];
+  const html = groups.map(g => {
+    const emps = PERSONAL_DATA.employees.filter(e => e.group === g);
+    const debt = emps.reduce((s, e) => s + getEmployeeDebt(e), 0);
+    const cfg = GROUP_CONFIG[g];
+    const names = emps.map(e => e.name.split(' ')[0]);
+    const isActive = activeGroup === g;
+    return `<div class="group-card ${cfg.css} ${isActive ? 'active' : ''}" onclick="filterByGroup('${g}')">
+      <div class="group-card-title">${cfg.label}</div>
+      <div class="group-card-sub">${cfg.sub}</div>
+      <div class="group-card-debt ${debt === 0 ? 'ok' : ''}">€${debt.toLocaleString('es-ES', {minimumFractionDigits:2})}</div>
+      <div class="group-card-detail">${emps.length} persona${emps.length > 1 ? 's' : ''} · ${debt > 0 ? 'Deuda pendiente' : 'Al día'}</div>
+      <div class="group-card-people">${names.map(n => `<span class="group-card-chip">${n}</span>`).join('')}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('groupCards').innerHTML = html;
+}
+
+function filterByGroup(g) {
+  activeGroup = activeGroup === g ? 'all' : g;
+  renderPersonal();
+}
+
+
+// ── EMPLOYEE DETAIL / FICHA ──
+function getEmployeeTotalDebt(emp) {
+  let debt = 0;
+  Object.values(emp.payments).forEach(p => {
+    if (!p) return;
+    // Count extras
+    if (p.extras) {
+      p.extras.forEach(ex => { if (!ex.pagado) debt += ex.importe; });
+    } else {
+      // Legacy: count unpaid nomina/cash
+      if (emp.nomina > 0 && !p.nomina) debt += emp.nomina;
+      if (emp.cash > 0 && !p.cash) debt += emp.cash;
+    }
+    if (p.horasExtra && !p.horasExtraPagadas) debt += p.horasExtra;
+    if (p.propinas && !p.propinasPagadas) debt += p.propinas;
+  });
+  return debt;
+}
+
+function openEmpDetail(empId) {
+  const emp = PERSONAL_DATA.employees.find(e => e.id === empId);
+  if (!emp) return;
+  
+  const totalDebt = getEmployeeTotalDebt(emp);
+  const totalPaid = Object.values(emp.payments).reduce((s, p) => {
+    if (!p || !p.extras) return s;
+    return s + p.extras.filter(ex => ex.pagado).reduce((ss, ex) => ss + ex.importe, 0);
+  }, 0);
+
+  document.getElementById('empDetailTitle').textContent = emp.name + ' · Ficha';
+
+  const monthOrder = Object.keys(emp.payments).sort();
+  
+  let html = `
+    <div class="debt-summary-bar">
+      <div>
+        <div class="debt-summary-label">Deuda total pendiente</div>
+        <div class="debt-summary-total">€${totalDebt.toLocaleString('es-ES', {minimumFractionDigits:2})}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="debt-summary-label">Total cobrado</div>
+        <div style="font-size:18px;font-weight:700;color:var(--green)">€${totalPaid.toLocaleString('es-ES', {minimumFractionDigits:2})}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="debt-summary-label">Sueldo pactado</div>
+        <div style="font-size:14px;font-weight:600;color:var(--text)">€${(emp.nomina+emp.cash).toLocaleString('es-ES', {minimumFractionDigits:2})}/mes</div>
+      </div>
+    </div>
+    ${emp.notes ? `<div style="font-size:11px;color:var(--muted);margin-bottom:14px;padding:8px 12px;background:var(--bg);border-radius:8px;border:1px solid var(--border)">${emp.notes}</div>` : ''}
+  `;
+
+  monthOrder.forEach(key => {
+    const p = emp.payments[key];
+    if (!p) return;
+    const [year, mon] = key.split('-');
+    const mesNombre = MESES_FULL[parseInt(mon)-1] + ' ' + year;
+    const extras = p.extras || [];
+    if (extras.length === 0) return;
+    const monthDebt = extras.filter(ex => !ex.pagado).reduce((s, ex) => s + ex.importe, 0);
+    const monthPaid = extras.filter(ex => ex.pagado).reduce((s, ex) => s + ex.importe, 0);
+    
+    html += `<div class="debt-month-block">
+      <div class="debt-month-header">
+        <span>${mesNombre}</span>
+        <span class="month-total ${monthDebt === 0 ? 'paid' : ''}">
+          ${monthDebt > 0 ? '⚠️ Debe €' + monthDebt.toLocaleString('es-ES', {minimumFractionDigits:2}) : '✅ Saldado'}
+          ${monthPaid > 0 ? ' · Pagado €' + monthPaid.toLocaleString('es-ES', {minimumFractionDigits:2}) : ''}
+        </span>
+      </div>`;
+    
+    extras.forEach((ex, i) => {
+      html += `<div class="debt-item-row">
+        <span class="debt-item-concepto">${ex.concepto}</span>
+        <span class="debt-item-importe">€${ex.importe.toLocaleString('es-ES', {minimumFractionDigits:2})}</span>
+        <span class="debt-item-status ${ex.pagado ? 'paid' : 'unpaid'}" 
+              onclick="toggleDebtItem('${empId}','${key}',${i})">
+          ${ex.pagado ? '✅ Pagado' : '⏳ Pendiente'}
+        </span>
+      </div>`;
+    });
+    html += `</div>`;
+  });
+
+  // Add new debt item form
+  html += `
+    <div class="p-section-title" style="margin-top:16px">Añadir concepto</div>
+    <div class="add-debt-row">
+      <input type="text" id="newDebtConcepto" placeholder="Concepto (ej: Cash marzo)">
+      <input type="number" id="newDebtImporte" placeholder="€" style="max-width:90px">
+      <select id="newDebtMonth" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;padding:7px 10px">
+        ${monthOrder.map(k => {
+          const [y,m] = k.split('-');
+          return `<option value="${k}">${MESES_FULL[parseInt(m)-1]} ${y}</option>`;
+        }).join('')}
+      </select>
+      <button class="p-btn primary" onclick="addDebtItem('${empId}')">＋</button>
+    </div>
+  `;
+
+  document.getElementById('empDetailBody').innerHTML = html;
+  document.getElementById('empDetailModal').classList.add('open');
+}
+
+function toggleDebtItem(empId, monthKey, idx) {
+  const emp = PERSONAL_DATA.employees.find(e => e.id === empId);
+  if (!emp || !emp.payments[monthKey]?.extras) return;
+  emp.payments[monthKey].extras[idx].pagado = !emp.payments[monthKey].extras[idx].pagado;
+  syncPersonalToSheets();
+  openEmpDetail(empId); // re-render modal
+  renderPersonal();
+  showSyncToast('✅ Estado actualizado');
+}
+
+function addDebtItem(empId) {
+  const concepto = document.getElementById('newDebtConcepto').value.trim();
+  const importe = parseFloat(document.getElementById('newDebtImporte').value || 0);
+  const monthKey = document.getElementById('newDebtMonth').value;
+  if (!concepto || !importe) return;
+  
+  const emp = PERSONAL_DATA.employees.find(e => e.id === empId);
+  if (!emp) return;
+  if (!emp.payments[monthKey]) emp.payments[monthKey] = { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '', extras: [] };
+  if (!emp.payments[monthKey].extras) emp.payments[monthKey].extras = [];
+  emp.payments[monthKey].extras.push({ concepto, importe, pagado: false });
+  
+  syncPersonalToSheets();
+  document.getElementById('newDebtConcepto').value = '';
+  document.getElementById('newDebtImporte').value = '';
+  openEmpDetail(empId);
+  renderPersonal();
+  showSyncToast('✅ Concepto añadido y sincronizado');
+}
+
+// ── MAIN SECTION SWITCH ──
+function setMainSection(section) {
+  currentMainSection = section;
+  document.getElementById('sectionProveedores').style.display = section === 'proveedores' ? '' : 'none';
+  document.getElementById('sectionPersonal').style.display = section === 'personal' ? 'block' : 'none';
+  document.getElementById('kpiBar').style.display = section === 'proveedores' ? '' : 'none';
+  document.querySelector('.controls').style.display = section === 'proveedores' ? '' : 'none';
+  document.getElementById('mainTabProveedores').classList.toggle('active', section === 'proveedores');
+  document.getElementById('mainTabPersonal').classList.toggle('active', section === 'personal');
+  document.getElementById('headerTitle').textContent = section === 'proveedores' ? 'Deuda Proveedores' : 'Personal · Nóminas';
+  if (section === 'personal') renderPersonal();
+}
+
+// ── RENDER PERSONAL ──
+function renderPersonal() {
+  renderGroupCards();
+  renderPersonalKpis();
+  renderEmployeeGrid();
+  renderExtras();
+}
+
+function getMonthKey(year, month) { return `${year}-${String(month+1).padStart(2,'0')}`; }
+
+function getEmployeeDebt(emp) {
+  let debt = 0;
+  Object.values(emp.payments).forEach(p => {
+    if (!p) return;
+    if (p.extras) {
+      p.extras.forEach(ex => { if (!ex.pagado) debt += ex.importe; });
+    } else {
+      if (emp.nomina > 0 && !p.nomina) debt += emp.nomina;
+      if (emp.cash > 0 && !p.cash) debt += emp.cash;
+    }
+    if (p.horasExtra && !p.horasExtraPagadas) debt += p.horasExtra;
+  });
+  return debt;
+}
+
+function renderPersonalKpis() {
+  const emps = PERSONAL_DATA.employees;
+  const curKey = getMonthKey(CURRENT_YEAR, CURRENT_MONTH);
+  
+  // Total nómina mes
+  const totalMes = emps.reduce((s,e) => s + e.nomina + e.cash, 0)
+    + PERSONAL_DATA.extras.filter(x => x.date && x.date.startsWith('2026-03')).reduce((s,x) => s + (x.amount||0), 0);
+  
+  // Deuda total
+  const totalDebt = emps.reduce((s,e) => s + getEmployeeDebt(e), 0);
+  
+  // Pagado este mes
+  const paidThisMonth = emps.reduce((s,e) => {
+    const p = e.payments[curKey];
+    if (!p) return s;
+    if (p.nomina) s += e.nomina;
+    if (p.cash) s += e.cash;
+    return s;
+  }, 0);
+  
+  // Empleados con deuda
+  const withDebt = emps.filter(e => getEmployeeDebt(e) > 0).length;
+
+  document.getElementById('personalKpis').innerHTML = `
+    <div class="p-kpi">
+      <div class="p-kpi-label">Nómina mensual</div>
+      <div class="p-kpi-value">€${totalMes.toLocaleString('es-ES', {minimumFractionDigits:0})}</div>
+      <div class="p-kpi-sub">${emps.length} empleados fijos</div>
+    </div>
+    <div class="p-kpi">
+      <div class="p-kpi-label">Deuda total sueldos</div>
+      <div class="p-kpi-value red">€${totalDebt.toLocaleString('es-ES', {minimumFractionDigits:0})}</div>
+      <div class="p-kpi-sub">${withDebt} empleados afectados</div>
+    </div>
+    <div class="p-kpi">
+      <div class="p-kpi-label">Pagado este mes</div>
+      <div class="p-kpi-value green">€${paidThisMonth.toLocaleString('es-ES', {minimumFractionDigits:0})}</div>
+      <div class="p-kpi-sub">de €${(emps.reduce((s,e)=>s+e.nomina+e.cash,0)).toLocaleString('es-ES')} total</div>
+    </div>
+    <div class="p-kpi">
+      <div class="p-kpi-label">Pendiente este mes</div>
+      <div class="p-kpi-value yellow">€${(emps.reduce((s,e)=>s+e.nomina+e.cash,0) - paidThisMonth).toLocaleString('es-ES', {minimumFractionDigits:0})}</div>
+      <div class="p-kpi-sub">nómina + efectivo</div>
+    </div>
+  `;
+}
+
+function renderEmployeeGrid() {
+  const grid = document.getElementById('employeeGrid');
+  const titleEl = document.getElementById('employeeGridTitle');
+  const filteredEmps = activeGroup === 'all' 
+    ? PERSONAL_DATA.employees 
+    : PERSONAL_DATA.employees.filter(e => e.group === activeGroup);
+  
+  if (titleEl) {
+    const groupLabels = { all: 'Equipo completo', lucas: '👨‍🍳 Lucas', madrid: '🇪🇸 Equipo Madrid', argentina: '🇦🇷 Equipo Argentina' };
+    titleEl.textContent = groupLabels[activeGroup] || 'Equipo completo';
+  }
+  
+  grid.innerHTML = filteredEmps.map(emp => {
+    const debt = getEmployeeDebt(emp);
+    const debtClass = debt === 0 ? 'ok' : debt < 500 ? 'warn' : 'danger';
+    const debtLabel = debt === 0 ? 'Al día' : `Debe €${debt.toLocaleString('es-ES')}`;
+    const total = emp.nomina + emp.cash;
+
+    // Last 3 months chips
+    const chips = [];
+    for (let m = 0; m <= CURRENT_MONTH; m++) {
+      const key = getMonthKey(CURRENT_YEAR, m);
+      const p = emp.payments[key] || { nomina: false, cash: false };
+      let chipClass = 'unpaid';
+      let tooltip = MESES[m];
+      const hasNomina = emp.nomina > 0;
+      const hasCash = emp.cash > 0;
+      if (hasNomina && hasCash) {
+        if (p.nomina && p.cash) chipClass = 'paid-both';
+        else if (p.nomina || p.cash) chipClass = 'partial';
+        else chipClass = 'unpaid';
+      } else if (hasNomina) {
+        chipClass = p.nomina ? 'paid-both' : 'unpaid';
+      } else {
+        chipClass = p.cash ? 'paid-both' : 'unpaid';
+      }
+      chips.push(`<span class="month-chip ${chipClass}" onclick="openMonthDetail('${emp.id}','${key}')" title="Ver detalle ${MESES_FULL[m]}">${MESES[m]}</span>`);
+    }
+
+    return `
+    <div class="emp-card">
+      <div class="emp-card-header">
+        <div>
+          <div class="emp-name">${emp.name}</div>
+          <div class="emp-role">${emp.role}</div>
+        </div>
+        <span class="emp-debt-badge ${debtClass}">${debtLabel}</span>
+      </div>
+      <div class="emp-card-body">
+        <div class="emp-pay-row">
+          <span class="emp-pay-label">Nómina mensual</span>
+          <span class="emp-pay-value">${emp.nomina > 0 ? '€' + emp.nomina.toLocaleString('es-ES') : '—'}</span>
+        </div>
+        <div class="emp-pay-row">
+          <span class="emp-pay-label">Efectivo mensual</span>
+          <span class="emp-pay-value">${emp.cash > 0 ? '€' + emp.cash.toLocaleString('es-ES') : '—'}</span>
+        </div>
+        <div class="emp-pay-row" style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px">
+          <span class="emp-pay-label">Total mensual</span>
+          <span class="emp-pay-value" style="font-weight:700;color:var(--text)">€${total.toLocaleString('es-ES')}</span>
+        </div>
+        <div class="emp-months">
+          <div class="emp-months-title">Estado de pagos 2026</div>
+          <div class="months-grid">${chips.join('')}</div>
+        </div>
+        ${emp.notes ? `<div style="font-size:10px;color:var(--muted);margin-top:10px;font-style:italic">${emp.notes}</div>` : ''}
+      </div>
+      <div class="emp-card-footer">
+        <button class="emp-action-btn" onclick="openEmpDetail('${emp.id}')" style="border-color:rgba(167,139,250,0.3);color:var(--purple)">📋 Ver ficha</button>
+        <button class="emp-action-btn" onclick="openMonthDetail('${emp.id}', '${getMonthKey(CURRENT_YEAR, CURRENT_MONTH)}')">📅 Registrar pago</button>
+        <button class="emp-action-btn" onclick="openEditEmployee('${emp.id}')">✏️ Editar</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderExtras() {
+  const section = document.getElementById('extrasSection');
+  if (PERSONAL_DATA.extras.length === 0) {
+    section.innerHTML = '<div style="color:var(--muted);font-size:12px;margin-bottom:8px">No hay personal eventual registrado.</div>';
+    return;
+  }
+  section.innerHTML = PERSONAL_DATA.extras.map((ex, i) => `
+    <div class="extra-row">
+      <span>${ex.name}</span>
+      <span style="color:var(--muted);font-size:11px">${ex.role}</span>
+      <span style="color:var(--muted);font-size:11px">${ex.date || ''}</span>
+      <span style="font-weight:600">€${(ex.amount||0).toLocaleString('es-ES')}</span>
+      <span style="color:${ex.paid?'var(--green)':'var(--red)'};font-size:11px;cursor:pointer" onclick="toggleExtraPaid(${i})">${ex.paid ? '✅ Pagado' : '⏳ Pendiente'}</span>
+      <button class="emp-action-btn" style="flex:0;padding:4px 10px" onclick="deleteExtra(${i})">✕</button>
+    </div>
+  `).join('');
+}
+
+// ── MONTH DETAIL MODAL ──
+function openMonthDetail(empId, monthKey) {
+  editingMonthKey = monthKey;
+  editingMonthEmpId = empId;
+  const emp = PERSONAL_DATA.employees.find(e => e.id === empId);
+  if (!emp) return;
+  const p = emp.payments[monthKey] || { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '' };
+  const [year, mon] = monthKey.split('-');
+  const mesNombre = MESES_FULL[parseInt(mon)-1] + ' ' + year;
+  
+  document.getElementById('monthModalTitle').textContent = `${emp.name} · ${mesNombre}`;
+  document.getElementById('monthModalBody').innerHTML = `
+    <div class="month-detail-grid">
+      ${emp.nomina > 0 ? `
+      <div class="month-detail-item">
+        <label>Nómina (€${emp.nomina})</label>
+        <input type="checkbox" id="mdNomina" ${p.nomina ? 'checked' : ''}> Pagada
+      </div>` : ''}
+      ${emp.cash > 0 ? `
+      <div class="month-detail-item">
+        <label>Efectivo (€${emp.cash})</label>
+        <input type="checkbox" id="mdCash" ${p.cash ? 'checked' : ''}> Pagado
+      </div>` : ''}
+      <div class="month-detail-item">
+        <label>Horas extra (€)</label>
+        <input type="number" id="mdHorasExtra" value="${p.horasExtra||0}" min="0" step="0.01">
+      </div>
+      <div class="month-detail-item">
+        <label>Propinas (€)</label>
+        <input type="number" id="mdPropinas" value="${p.propinas||0}" min="0" step="0.01">
+      </div>
+    </div>
+    <div class="p-modal-field" style="margin-top:8px">
+      <label>Notas</label>
+      <input type="text" id="mdNotas" value="${p.notas||''}" placeholder="Observaciones del mes...">
+    </div>
+  `;
+  document.getElementById('monthModal').classList.add('open');
+}
+
+function saveMonthDetail() {
+  const emp = PERSONAL_DATA.employees.find(e => e.id === editingMonthEmpId);
+  if (!emp) return;
+  if (!emp.payments[editingMonthKey]) emp.payments[editingMonthKey] = {};
+  const p = emp.payments[editingMonthKey];
+  const nominaEl = document.getElementById('mdNomina');
+  const cashEl = document.getElementById('mdCash');
+  if (nominaEl) p.nomina = nominaEl.checked;
+  if (cashEl) p.cash = cashEl.checked;
+  p.horasExtra = parseFloat(document.getElementById('mdHorasExtra')?.value || 0);
+  p.propinas = parseFloat(document.getElementById('mdPropinas')?.value || 0);
+  p.notas = document.getElementById('mdNotas')?.value || '';
+  closeModal('monthModal');
+  renderPersonal();
+  showSyncToast('✅ Pago registrado');
+}
+
+// ── EDIT EMPLOYEE MODAL ──
+function openEditEmployee(empId) {
+  editingEmpId = empId;
+  const emp = empId ? PERSONAL_DATA.employees.find(e => e.id === empId) : null;
+  document.getElementById('empModalTitle').textContent = emp ? 'Editar empleado' : 'Nuevo empleado';
+  document.getElementById('empName').value = emp?.name || '';
+  document.getElementById('empRole').value = emp?.role || '';
+  document.getElementById('empNomina').value = emp?.nomina || 0;
+  document.getElementById('empCash').value = emp?.cash || 0;
+  document.getElementById('empNotes').value = emp?.notes || '';
+  document.getElementById('empDeleteBtn').style.display = emp ? '' : 'none';
+  document.getElementById('empModal').classList.add('open');
+}
+
+function saveEmployee() {
+  const name = document.getElementById('empName').value.trim();
+  if (!name) return;
+  const nomina = parseFloat(document.getElementById('empNomina').value || 0);
+  const cash = parseFloat(document.getElementById('empCash').value || 0);
+  const role = document.getElementById('empRole').value.trim();
+  const notes = document.getElementById('empNotes').value.trim();
+  
+  if (editingEmpId) {
+    const emp = PERSONAL_DATA.employees.find(e => e.id === editingEmpId);
+    if (emp) { emp.name = name; emp.role = role; emp.nomina = nomina; emp.cash = cash; emp.notes = notes; }
+  } else {
+    const newId = 'emp_' + Date.now();
+    const payments = {};
+    for (let m = 0; m <= CURRENT_MONTH; m++) {
+      payments[getMonthKey(CURRENT_YEAR, m)] = { nomina: false, cash: false, horasExtra: 0, propinas: 0, notas: '' };
+    }
+    PERSONAL_DATA.employees.push({ id: newId, name, role, nomina, cash, notes, type: 'fixed', payments });
+  }
+  closeModal('empModal');
+  syncPersonalToSheets();
+  renderPersonal();
+  showSyncToast('✅ Empleado guardado y sincronizado');
+}
+
+function deleteEmployee() {
+  if (!editingEmpId) return;
+  if (!confirm('¿Eliminar este empleado?')) return;
+  PERSONAL_DATA.employees = PERSONAL_DATA.employees.filter(e => e.id !== editingEmpId);
+  closeModal('empModal');
+  renderPersonal();
+}
+
+// ── EXTRAS ──
+function openAddExtra() {
+  document.getElementById('extraName').value = '';
+  document.getElementById('extraRole').value = '';
+  document.getElementById('extraAmount').value = '';
+  document.getElementById('extraDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('extraNotes').value = '';
+  document.getElementById('extraModal').classList.add('open');
+}
+
+function saveExtra() {
+  const name = document.getElementById('extraName').value.trim();
+  if (!name) return;
+  PERSONAL_DATA.extras.push({
+    name,
+    role: document.getElementById('extraRole').value.trim(),
+    amount: parseFloat(document.getElementById('extraAmount').value || 0),
+    date: document.getElementById('extraDate').value,
+    notes: document.getElementById('extraNotes').value.trim(),
+    paid: false
+  });
+  closeModal('extraModal');
+  syncPersonalToSheets();
+  renderPersonal();
+  showSyncToast('✅ Personal eventual añadido y sincronizado');
+}
+
+function toggleExtraPaid(i) {
+  PERSONAL_DATA.extras[i].paid = !PERSONAL_DATA.extras[i].paid;
+  renderExtras();
+}
+
+function deleteExtra(i) {
+  PERSONAL_DATA.extras.splice(i, 1);
+  renderExtras();
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('open');
+}
+
+// Init: try to load from Sheets, fallback to hardcoded DATA
+async function initData() {
+  if (sheetsEnabled) {
+    setSyncStatus('syncing');
+    const [provLoaded, persLoaded] = await Promise.all([
+      loadFromSheets(),
+      loadPersonalFromSheets()
+    ]);
+    if (provLoaded || persLoaded) {
+      setSyncStatus('ok');
+      if (!provLoaded) showSyncToast('⚠️ Proveedores: usando datos locales');
+      if (!persLoaded) showSyncToast('ℹ️ Personal: usando datos locales (aún no sincronizado)');
+    } else {
+      showSyncToast('⚠️ No se pudo conectar a Sheets. Usando datos locales.');
+    }
+  }
+  renderKPIs();
+  initProviderFilter();
+  render();
+}
+
+let DATA = [{"fecha": "16/02/2026", "proveedor": "YINGJING XU", "numero": "2026007591", "categoria": "Materias Primas", "total": 1499.79, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "manual", "link": "https://web.haddock.app/documents/exp~xNZdTH0cT6uhVTjaFfixRg", "pagada": true}, {"fecha": "31/01/2026", "proveedor": "Nicnat Gourmet S.L.", "numero": "A/160", "categoria": "Materias Primas", "total": 199.5, "vencimiento": "31/01/2026", "dias": 36, "estado_venc": "vencida", "origen": "manual", "link": "https://web.haddock.app/documents/exp~Ixg9AMtkQ5qT-f6vtqAHpA", "pagada": false}, {"fecha": "30/01/2026", "proveedor": "FRONDA CENTROS DE JARDINERIA SL", "numero": "P260000491", "categoria": "Materias Primas", "total": 214.71, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "manual", "link": "https://web.haddock.app/documents/exp~DdT3eZUtQamJSA9UId8ZlA", "pagada": false}, {"fecha": "26/01/2026", "proveedor": "DISCARLUX SL", "numero": "26001120", "categoria": "Materias Primas", "total": 161.27, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "manual", "link": "https://web.haddock.app/documents/exp~f33QvJByQHe-Rkta4vgqzQ", "pagada": true}, {"fecha": "18/01/2026", "proveedor": "CARNES VENERO CLARO", "numero": "26VC-52", "categoria": "Materias Primas", "total": 484.84, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "manual", "link": "https://web.haddock.app/documents/exp~OFcBzyAgTXajpyvq8xRI7Q", "pagada": false}, {"fecha": "31/12/2025", "proveedor": "Alma Vinos Unicos S.L.", "numero": "9526/25", "categoria": "Bebidas", "total": 2009.57, "vencimiento": "30/01/2026", "dias": 37, "estado_venc": "vencida", "origen": "manual", "link": "https://web.haddock.app/documents/exp~N89XJRvPR9CvPo50kQVfKw", "pagada": false}, {"fecha": "31/12/2025", "proveedor": "FRONDA CENTROS DE JARDINERIA SL", "numero": "P260000381", "categoria": "Materias Primas", "total": 135.46, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "manual", "link": "https://web.haddock.app/documents/exp~bztgjNNhRr-6-rL1MCPhwA", "pagada": false}, {"fecha": "22/12/2025", "proveedor": "Alma Vinos Unicos S.L.", "numero": "9337/25", "categoria": "Bebidas", "total": 302.02, "vencimiento": "21/01/2026", "dias": 46, "estado_venc": "vencida", "origen": "manual", "link": "https://web.haddock.app/documents/exp~sDXY1bVzSKSaEyOMrDzEMA", "pagada": true}, {"fecha": "16/12/2025", "proveedor": "GOTA WINE SL", "numero": "FD2500110", "categoria": "Bebidas", "total": 413.82, "vencimiento": "15/01/2026", "dias": 52, "estado_venc": "vencida", "origen": "manual", "link": "https://web.haddock.app/documents/exp~JUxblTFzT1Op8eZjMpCeXQ", "pagada": false}, {"fecha": "10/12/2025", "proveedor": "Grupo Das 99 S.L.", "numero": "2025/1568", "categoria": "Bebidas", "total": 219.25, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "manual", "link": "https://web.haddock.app/documents/exp~4WRpuZ2ERxej1XoAXzconw", "pagada": false}, {"fecha": "05/12/2025", "proveedor": "COMPROVINO SL", "numero": "A/252864", "categoria": "Materias Primas", "total": 146.65, "vencimiento": "04/01/2026", "dias": 63, "estado_venc": "vencida", "origen": "manual", "link": "https://web.haddock.app/documents/exp~0x3sb3-ARBOPwHamFa5vpg", "pagada": false}, {"fecha": "04/12/2025", "proveedor": "Grupo Das 99 S.L.", "numero": "2025/1547", "categoria": "Bebidas", "total": 219.25, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "manual", "link": "https://web.haddock.app/documents/exp~ePb7UodzTFeZxV8qFmMdEA", "pagada": false}, {"fecha": "02/12/2025", "proveedor": "Alma Vinos Unicos S.L.", "numero": "FA/ 8695/25", "categoria": "Bebidas", "total": 311.67, "vencimiento": "01/01/2026", "dias": 66, "estado_venc": "vencida", "origen": "manual", "link": "https://web.haddock.app/documents/exp~lyI7_EMLR164YbWxKmzJxg", "pagada": true}, {"fecha": "30/11/2025", "proveedor": "FRONDA CENTROS DE JARDINERIA SL", "numero": "P260000268", "categoria": "Materias Primas", "total": 234.36, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "manual", "link": "https://web.haddock.app/documents/exp~OAGdgMazTaiVUWbqZy13Pg", "pagada": false}, {"fecha": "21/11/2025", "proveedor": "Grupo Das 99 S.L.", "numero": "2025/1468", "categoria": "Bebidas", "total": 126.32, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "manual", "link": "https://web.haddock.app/documents/exp~6v7ebbpFRyemEYKnx3DrCQ", "pagada": false}, {"fecha": "28/02/2026", "proveedor": "Polleria Hermanos Gomez Ortiz", "numero": "623", "categoria": "Materias Primas", "total": 856.9, "vencimiento": "28/02/2026", "dias": 8, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~JuxcsNeEQ2iKPkxCz3dgMw", "pagada": true}, {"fecha": "28/02/2026", "proveedor": "SABOLI TABOLI SL", "numero": "38", "categoria": "Materias Primas", "total": 376.85, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~72ZtEJV2RfGyrAFlSFiXTg", "pagada": true}, {"fecha": "27/02/2026", "proveedor": "FRONDA CENTROS DE JARDINERIA SL", "numero": "P260000607", "categoria": "Materias Primas", "total": 174.46, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~HIURrOD7Q6ObrvrMvnD6Nw", "pagada": false}, {"fecha": "26/02/2026", "proveedor": "Alma Vinos Unicos S.L.", "numero": "FA/ 1259/26", "categoria": "Bebidas", "total": 882.82, "vencimiento": "28/03/2026", "dias": -20, "estado_venc": "por_vencer", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~cMkA6AxkQMWZDz2CWPGmtw", "pagada": false}, {"fecha": "23/02/2026", "proveedor": "AZAHAR ANDREINA TINEO GRANADOS", "numero": "2026 - 004", "categoria": "Comunicación y marketing", "total": 203.28, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~W9tJX5jOTOamtiZdkhiYAQ", "pagada": false}, {"fecha": "23/02/2026", "proveedor": "Naturgy Clientes S.A.", "numero": "FE26390007686066", "categoria": "Suministros", "total": 443.1, "vencimiento": "02/03/2026", "dias": 6, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~7igiyfIRTMWihlCu6F-G_g", "pagada": true}, {"fecha": "22/02/2026", "proveedor": "CARNES VENERO CLARO", "numero": "26VC-224", "categoria": "Materias Primas", "total": 332.89, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~VB_rL9VSTS2lAmLsHcTOiw", "pagada": false}, {"fecha": "18/02/2026", "proveedor": "Grupo Das 99 S.L.", "numero": "26/195", "categoria": "Limpieza", "total": 214.9, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~QP2p0PnKQ9aCs3IT-i-0lg", "pagada": false}, {"fecha": "18/02/2026", "proveedor": "Alma Vinos Unicos S.L.", "numero": "FA/ 1091/26", "categoria": "Bebidas", "total": 299.35, "vencimiento": "20/03/2026", "dias": -12, "estado_venc": "por_vencer", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~U5xXp6qlTVeRnMCr8zqc_w", "pagada": false}, {"fecha": "18/02/2026", "proveedor": "Rooftop Smokehouse S.L.", "numero": "F26/0000403", "categoria": "Materias Primas", "total": 86.67, "vencimiento": "25/02/2026", "dias": 11, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~oUqkMfGcQFaBmYFzZn11ug", "pagada": true}, {"fecha": "17/02/2026", "proveedor": "Angel Salvadores Pacheco", "numero": "980", "categoria": "Materias Primas", "total": 902.18, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~M8w3TC3gSIWrXTMb-hu5QQ", "pagada": false}, {"fecha": "15/02/2026", "proveedor": "CARNES VENERO CLARO", "numero": "26VC-197", "categoria": "Materias Primas", "total": 201.43, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~HADb0zYDTXSQQHikZDm9wA", "pagada": false}, {"fecha": "13/02/2026", "proveedor": "GALLINAS Y COBARDES", "numero": "2026-0916", "categoria": "Materias Primas", "total": 54.6, "vencimiento": "13/02/2026", "dias": 23, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~xnuomGubQC2gIP7gxD_DdA", "pagada": false}, {"fecha": "13/02/2026", "proveedor": "Il Pastaio", "numero": "2026/A/226203", "categoria": "Materias Primas", "total": 35.56, "vencimiento": "13/02/2026", "dias": 23, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~8usr37yXTw6B2rdbbdBp0w", "pagada": false}, {"fecha": "11/02/2026", "proveedor": "Endesa Energia S.A.", "numero": "P26CON006282008", "categoria": "Suministros", "total": 648.28, "vencimiento": "18/02/2026", "dias": 18, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~lMLBnip0TRu4tEb9OvdaCg", "pagada": true}, {"fecha": "10/02/2026", "proveedor": "IBERBRIT SL", "numero": "26-650", "categoria": "Gestoría y asesoría", "total": 310.97, "vencimiento": "10/02/2026", "dias": 26, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~B8AThUH1QPuEetoK90WUng", "pagada": true}, {"fecha": "10/02/2026", "proveedor": "IBERBRIT SL", "numero": "26-649", "categoria": "Gestoría y asesoría", "total": 91.96, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~DLmwFXXLQ4--O8ikYYQ9TQ", "pagada": true}, {"fecha": "10/02/2026", "proveedor": "IBERBRIT SL", "numero": "26-648", "categoria": "Gestoría y asesoría", "total": 59.29, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~nZlqMGW8RFWyA9XmvcJG5w", "pagada": true}, {"fecha": "10/02/2026", "proveedor": "IBERBRIT SL", "numero": "26-647", "categoria": "Gestoría y asesoría", "total": 22.99, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~yq9OO7XFTkGHWZQb6yoqjw", "pagada": true}, {"fecha": "08/02/2026", "proveedor": "CARNES VENERO CLARO", "numero": "26VC-169", "categoria": "Materias Primas", "total": 362.34, "vencimiento": null, "dias": null, "estado_venc": "sin_fecha", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~fdMV-m6VTKa8XFe1h0XoEw", "pagada": false}, {"fecha": "05/02/2026", "proveedor": "Alma Vinos Unicos S.L.", "numero": "FA/ 819/26", "categoria": "Materias Primas", "total": 374.62, "vencimiento": "07/03/2026", "dias": 1, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~JZ57wbRHRw64UwVoL7xySg", "pagada": false}, {"fecha": "02/02/2026", "proveedor": "Santo Bakehouse S.L.", "numero": "000143", "categoria": "Materias Primas", "total": 165.6, "vencimiento": "02/02/2026", "dias": 34, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~G95HujZdQ2i9R-MfHw3VAw", "pagada": false}, {"fecha": "01/02/2026", "proveedor": "Haddock App S.L.", "numero": "5D3905E9-0017", "categoria": "Gestoría y asesoría", "total": 163.35, "vencimiento": "01/02/2026", "dias": 35, "estado_venc": "vencida", "origen": "feb2026", "link": "https://web.haddock.app/documents/exp~Ude-C4JtRT29ZP7MHCHE7A", "pagada": true}, {"fecha": "", "proveedor": "Alma Vinos Unicos S.L.", "numero": "F8041", "categoria": "Bebidas", "total": 703.06, "vencimiento": "17/12/2025", "dias": 81, "estado_venc": "vencida", "origen": "manual", "link": "", "pagada": true}, {"fecha": "", "proveedor": "Alma Vinos Unicos S.L.", "numero": "F7689", "categoria": "Bebidas", "total": 382.89, "vencimiento": "04/12/2026", "dias": -271, "estado_venc": "por_vencer", "origen": "manual", "link": "", "pagada": false}, {"fecha": "", "proveedor": "FRONDA CENTROS DE JARDINERIA SL", "numero": "F152", "categoria": "Materias Primas", "total": 241.9, "vencimiento": "31/10/2025", "dias": 128, "estado_venc": "vencida", "origen": "manual", "link": "", "pagada": false}, {"fecha": "", "proveedor": "NINCAT SL", "numero": "F 1835-2066", "categoria": "Otros", "total": 135.45, "vencimiento": "20/10/2025", "dias": 139, "estado_venc": "vencida", "origen": "manual", "link": "", "pagada": false}, {"fecha": "", "proveedor": "Santo Bakehouse S.L.", "numero": "F125", "categoria": "Materias Primas", "total": 146.7, "vencimiento": "07/01/2026", "dias": 60, "estado_venc": "vencida", "origen": "manual", "link": "", "pagada": true}, {"fecha": "", "proveedor": "Tres Albornoces Rozas S.L.", "numero": "F251069", "categoria": "Suministros", "total": 363.24, "vencimiento": "05/08/2025", "dias": 215, "estado_venc": "vencida", "origen": "manual", "link": "", "pagada": false}, {"fecha": "", "proveedor": "CADENA 060", "numero": "F00026", "categoria": "Otros", "total": 774.64, "vencimiento": "19/01/2026", "dias": 48, "estado_venc": "vencida", "origen": "manual", "link": "", "pagada": false}];
+
+// ── STATE ──
+let currentView='overview', currentStatus='all', currentProvider='';
+let sortCol='dias', sortDir='desc';
+let chatOpen=false, chatHistory=[], isLoading=false;
+const fmt = n => '€'+n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
+
+// ── CHAT ──
+function toggleChat(){
+  chatOpen=!chatOpen;
+  document.getElementById('chatPanel').classList.toggle('open',chatOpen);
+  document.getElementById('mainContent').classList.toggle('chat-open',chatOpen);
+}
+function autoResize(el){ el.style.height='auto'; el.style.height=Math.min(el.scrollHeight,100)+'px'; }
+function handleKey(e){ if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();sendMessage();} }
+function sendSuggestion(btn){ document.getElementById('chatInput').value=btn.textContent; document.getElementById('chatSuggestions').style.display='none'; sendMessage(); }
+
+function addMessage(role,html){
+  const msgs=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className=`msg ${role}`;
+  const av=role==='assistant'?'✦':'TÚ';
+  div.innerHTML=`<div class="msg-avatar">${av}</div><div class="msg-bubble">${html}</div>`;
+  msgs.appendChild(div);
+  msgs.scrollTop=msgs.scrollHeight;
+}
+function showTyping(){
+  const msgs=document.getElementById('chatMessages');
+  const div=document.createElement('div');
+  div.className='msg assistant'; div.id='typingDot';
+  div.innerHTML=`<div class="msg-avatar">✦</div><div class="msg-bubble"><div class="typing-indicator"><span></span><span></span><span></span></div></div>`;
+  msgs.appendChild(div); msgs.scrollTop=msgs.scrollHeight;
+}
+function removeTyping(){ const e=document.getElementById('typingDot'); if(e)e.remove(); }
+
+function buildSystem(){
+  const active=DATA.filter(d=>!d.pagada);
+  return `Eres el asistente financiero del restaurante HIRO. Tienes acceso completo a la base de datos de facturas impagadas y puedes modificarlas.
+
+DATOS ACTUALES:
+${JSON.stringify(DATA,null,2)}
+
+RESUMEN RÁPIDO:
+- Facturas activas: ${active.length} | Deuda total: €${active.reduce((s,x)=>s+x.total,0).toFixed(2)}
+- Vencidas: ${active.filter(x=>x.estado_venc==='vencida').length} | Por vencer: ${active.filter(x=>x.estado_venc==='por_vencer').length} | Sin fecha: ${active.filter(x=>x.estado_venc==='sin_fecha').length}
+
+INSTRUCCIONES:
+Cuando el usuario pida una ACCIÓN (marcar pagada, cambiar importe, cambiar fecha, añadir nota), incluye al final del mensaje uno o más bloques <ACTION>...</ACTION> con JSON exacto:
+
+Marcar pagada: <ACTION>{"type":"MARK_PAID","numero":"xxx"}</ACTION>
+Marcar todas de un proveedor: <ACTION>{"type":"MARK_ALL_PAID","proveedor":"xxx"}</ACTION>
+Cambiar importe: <ACTION>{"type":"UPDATE_AMOUNT","numero":"xxx","new_total":123.45}</ACTION>
+Cambiar vencimiento: <ACTION>{"type":"UPDATE_DUE_DATE","numero":"xxx","new_date":"DD/MM/YYYY"}</ACTION>
+Añadir nota: <ACTION>{"type":"ADD_NOTE","numero":"xxx","note":"texto"}</ACTION>
+
+ESTILO:
+- Responde en español, conciso y directo
+- Usa **negrita** para importes y nombres clave  
+- Cuando ejecutes acciones, confirma qué cambió y el nuevo saldo pendiente
+- Si hay ambigüedad, pide confirmación antes de actuar`;
+}
+
+async function sendMessage(){
+  if(isLoading)return;
+  const inp=document.getElementById('chatInput');
+  const text=inp.value.trim(); if(!text)return;
+  inp.value=''; inp.style.height='auto';
+  document.getElementById('chatSuggestions').style.display='none';
+  addMessage('user',esc(text));
+  chatHistory.push({role:'user',content:text});
+  isLoading=true; document.getElementById('chatSend').disabled=true;
+  showTyping();
+  try{
+    const r=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,system:buildSystem(),messages:chatHistory})
+    });
+    const d=await r.json();
+    const raw=d.content?.[0]?.text||'Error al obtener respuesta.';
+    const acts=[...raw.matchAll(/<ACTION>([\s\S]*?)<\/ACTION>/g)];
+    let clean=raw.replace(/<ACTION>[\s\S]*?<\/ACTION>/g,'').trim();
+    removeTyping();
+    const results=[];
+    for(const m of acts){ try{ results.push(execAction(JSON.parse(m[1]))); }catch(e){} }
+    let html=md(clean);
+    if(results.length) html+='<br><br>'+results.map(r=>`<span class="action-tag">✓</span> ${esc(r)}`).join('<br>');
+    addMessage('assistant',html);
+    chatHistory.push({role:'assistant',content:raw});
+    if(results.length){ renderKPIs(); render(); }
+  }catch(e){ removeTyping(); addMessage('assistant','Error al conectar. Intenta de nuevo.'); }
+  isLoading=false; document.getElementById('chatSend').disabled=false;
+}
+
+function execAction(a){
+  if(a.type==='MARK_PAID'){
+    const i=DATA.findIndex(d=>d.numero===a.numero);
+    if(i<0) return `No se encontró la factura ${a.numero}`;
+    DATA[i].pagada=true;
+    syncPaidToSheets(a.numero, true);
+    return `Factura ${DATA[i].numero} de ${DATA[i].proveedor} marcada como pagada (€${DATA[i].total.toFixed(2)})`;
+  }
+  if(a.type==='MARK_ALL_PAID'){
+    const ms=DATA.filter(d=>d.proveedor.toLowerCase().includes(a.proveedor.toLowerCase().slice(0,6))&&!d.pagada);
+    ms.forEach(d=>{ d.pagada=true; syncPaidToSheets(d.numero, true); });
+    return `${ms.length} facturas de ${a.proveedor} marcadas como pagadas`;
+  }
+  if(a.type==='UPDATE_AMOUNT'){
+    const i=DATA.findIndex(d=>d.numero===a.numero);
+    if(i<0) return `No se encontró ${a.numero}`;
+    const old=DATA[i].total; DATA[i].total=a.new_total;
+    syncAmountToSheets(a.numero, a.new_total);
+    return `${a.numero}: €${old.toFixed(2)} → €${a.new_total.toFixed(2)}`;
+  }
+  if(a.type==='UPDATE_DUE_DATE'){
+    const i=DATA.findIndex(d=>d.numero===a.numero);
+    if(i<0) return `No se encontró ${a.numero}`;
+    const old=DATA[i].vencimiento||'—'; DATA[i].vencimiento=a.new_date;
+    const p=a.new_date.split('/'); const dv=new Date(p[2],p[1]-1,p[0]);
+    const hoy=new Date('2026-03-08'); const diff=Math.round((hoy-dv)/86400000);
+    DATA[i].dias=diff; DATA[i].estado_venc=diff>0?'vencida':'por_vencer';
+    syncDateToSheets(a.numero, a.new_date);
+    return `Vencimiento ${a.numero}: ${old} → ${a.new_date}`;
+  }
+  if(a.type==='ADD_NOTE'){
+    const i=DATA.findIndex(d=>d.numero===a.numero);
+    if(i<0) return `No se encontró ${a.numero}`;
+    DATA[i].nota=a.note;
+    syncNoteToSheets(a.numero, a.note);
+    return `Nota añadida a ${a.numero}`;
+  }
+  return 'Acción ejecutada';
+}
+
+function esc(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function md(t){ return esc(t).replace(/\*\*(.*?)\*\*/g,'<strong>$1</strong>').replace(/\n\n/g,'<br><br>').replace(/\n/g,'<br>'); }
+
+// ── RENDER ──
+function getFiltered(){
+  let d=DATA.filter(x=>!x.pagada);
+  if(currentStatus!=='all') d=d.filter(x=>x.estado_venc===currentStatus);
+  if(currentProvider) d=d.filter(x=>x.proveedor===currentProvider);
+  return d;
+}
+function sortData(d){
+  return d.sort((a,b)=>{
+    if(sortCol==='dias'){
+      const o={vencida:0,sin_fecha:1,por_vencer:2};
+      if(a.estado_venc!==b.estado_venc) return (o[a.estado_venc]-o[b.estado_venc])*(sortDir==='desc'?1:-1);
+      const av=a.dias??-999,bv=b.dias??-999;
+      return sortDir==='desc'?bv-av:av-bv;
+    }
+    if(sortCol==='total') return sortDir==='desc'?b.total-a.total:a.total-b.total;
+    if(sortCol==='proveedor') return sortDir==='desc'?b.proveedor.localeCompare(a.proveedor):a.proveedor.localeCompare(b.proveedor);
+    if(sortCol==='vencimiento'){const av=a.vencimiento||'zzz',bv=b.vencimiento||'zzz'; return sortDir==='desc'?bv.localeCompare(av):av.localeCompare(bv);}
+    return 0;
+  });
+}
+function renderKPIs(){
+  const ac=DATA.filter(d=>!d.pagada);
+  const v=ac.filter(x=>x.estado_venc==='vencida'),pv=ac.filter(x=>x.estado_venc==='por_vencer'),sf=ac.filter(x=>x.estado_venc==='sin_fecha');
+  document.getElementById('kpiBar').innerHTML=`
+    <div class="kpi red"><div class="kpi-label">Vencidas</div><div class="kpi-value">${fmt(v.reduce((s,x)=>s+x.total,0))}</div><div class="kpi-sub">${v.length} facturas</div></div>
+    <div class="kpi orange"><div class="kpi-label">Por vencer</div><div class="kpi-value">${fmt(pv.reduce((s,x)=>s+x.total,0))}</div><div class="kpi-sub">${pv.length} facturas</div></div>
+    <div class="kpi blue"><div class="kpi-label">Sin fecha</div><div class="kpi-value">${fmt(sf.reduce((s,x)=>s+x.total,0))}</div><div class="kpi-sub">${sf.length} facturas</div></div>
+    <div class="kpi yellow"><div class="kpi-label">Total activo</div><div class="kpi-value">${fmt(ac.reduce((s,x)=>s+x.total,0))}</div><div class="kpi-sub">${ac.length} facturas · ${[...new Set(ac.map(x=>x.proveedor))].length} proveedores</div></div>`;
+}
+function diasLabel(it){
+  if(it.estado_venc==='vencida'){const c=it.dias>90?'critico':it.dias>30?'urgente':'normal';return `<span class="dias-badge ${c}">+${it.dias}d</span>`;}
+  if(it.estado_venc==='por_vencer') return `<span class="dias-badge ok">${Math.abs(it.dias)}d</span>`;
+  return `<span class="dias-badge nd">—</span>`;
+}
+function bHtml(it){
+  if(it.pagada) return `<span class="badge pagada">Pagada</span>`;
+  const lb={vencida:'Vencida',por_vencer:'Por vencer',sin_fecha:'Sin fecha'};
+  return `<span class="badge ${it.estado_venc}">${lb[it.estado_venc]}</span>`;
+}
+function renderOverview(){
+  const f=sortData(getFiltered());
+  document.getElementById('totalDisplay').innerHTML=`<strong>${f.length} facturas</strong> · ${fmt(f.reduce((s,x)=>s+x.total,0))}`;
+  const arr=c=>sortCol!==c?'<span class="sort-arrow">↕</span>':`<span class="sort-arrow">${sortDir==='desc'?'↓':'↑'}</span>`;
+  if(!f.length){document.getElementById('mainContent').innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div>Sin resultados</div></div>`;return;}
+  document.getElementById('mainContent').innerHTML=`<div class="table-wrap"><table>
+    <thead><tr>
+      <th onclick="setSort('numero')">Nº Doc ${arr('numero')}</th>
+      <th onclick="setSort('proveedor')" class="${sortCol==='proveedor'?'sorted':''}">Proveedor ${arr('proveedor')}</th>
+      <th>Categoría</th><th>F. Factura</th>
+      <th onclick="setSort('vencimiento')" class="${sortCol==='vencimiento'?'sorted':''}">Vencimiento ${arr('vencimiento')}</th>
+      <th onclick="setSort('dias')" class="${sortCol==='dias'?'sorted':''}">Días ${arr('dias')}</th>
+      <th>Estado</th>
+      <th onclick="setSort('total')" class="${sortCol==='total'?'sorted':''}" style="text-align:right">Importe ${arr('total')}</th>
+      <th>Link</th><th>Nota</th>
+    </tr></thead>
+    <tbody>${f.map(it=>`<tr>
+      <td><span class="origen-dot ${it.origen}"></span><span style="font-size:11px">${it.numero}</span></td>
+      <td style="max-width:190px;overflow:hidden;text-overflow:ellipsis">${it.proveedor}</td>
+      <td style="color:var(--muted);font-size:11px">${it.categoria}</td>
+      <td style="color:var(--muted);font-size:11px">${it.fecha||'—'}</td>
+      <td>${it.vencimiento||'<span style="color:var(--muted)">—</span>'}</td>
+      <td>${diasLabel(it)}</td>
+      <td>${bHtml(it)}</td>
+      <td class="amount ${it.total>500?'large':''}" style="text-align:right">${fmt(it.total)}</td>
+      <td>${it.link?`<a class="link-btn" href="${it.link}" target="_blank">↗ Haddock</a>`:'<span class="no-link">—</span>'}</td>
+      <td style="font-size:10px;color:var(--muted);max-width:120px;overflow:hidden;text-overflow:ellipsis">${it.nota?`📝 ${it.nota}`:''}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+function renderProviderView(){
+  const f=getFiltered();
+  document.getElementById('totalDisplay').innerHTML=`<strong>${f.length} facturas</strong> · ${fmt(f.reduce((s,x)=>s+x.total,0))}`;
+  const gr={};
+  f.forEach(it=>{if(!gr[it.proveedor])gr[it.proveedor]=[];gr[it.proveedor].push(it);});
+  const sorted=Object.entries(gr).sort((a,b)=>b[1].reduce((s,x)=>s+x.total,0)-a[1].reduce((s,x)=>s+x.total,0));
+  if(!sorted.length){document.getElementById('mainContent').innerHTML=`<div class="empty"><div class="empty-icon">📭</div><div>Sin resultados</div></div>`;return;}
+  document.getElementById('mainContent').innerHTML=`<div class="provider-grid">${sorted.map(([prov,items])=>{
+    const tot=items.reduce((s,x)=>s+x.total,0);
+    const vc=items.filter(x=>x.estado_venc==='vencida');
+    const hc=vc.some(x=>x.dias>30);
+    const tc=tot>1000?'critical':tot>400?'warning':'ok';
+    const inv=[...items].sort((a,b)=>{const o={vencida:0,sin_fecha:1,por_vencer:2};if(a.estado_venc!==b.estado_venc)return o[a.estado_venc]-o[b.estado_venc];return(b.dias||0)-(a.dias||0);});
+    return `<div class="provider-card ${hc?'has-critical':''}">
+      <div class="card-header"><div class="card-name">${prov}</div><div class="card-total ${tc}">${fmt(tot)}</div></div>
+      <div class="card-meta">
+        <div class="card-meta-item"><strong>${items.length}</strong> factura${items.length>1?'s':''}</div>
+        ${vc.length?`<div class="card-meta-item" style="color:var(--red)"><strong>${vc.length}</strong> vencida${vc.length>1?'s':''}</div>`:''}
+        <div class="card-meta-item">${items[0].categoria}</div>
+      </div>
+      <div class="card-invoices">${inv.map(iv=>`<div class="invoice-row ${iv.pagada?'paid-row':''}">
+        <div><div class="inv-num">${iv.numero}${iv.nota?' 📝':''}</div><div class="inv-date">Vto: ${iv.vencimiento||'—'}</div></div>
+        <div>${bHtml(iv)}</div>
+        <div>${diasLabel(iv)}</div>
+        <div style="text-align:right"><div class="inv-amount ${iv.total>500?'large':''}">${fmt(iv.total)}</div>${iv.link?`<a class="link-btn" href="${iv.link}" target="_blank" style="margin-top:3px">↗</a>`:''}</div>
+      </div>`).join('')}</div>
+    </div>`;
+  }).join('')}</div>`;
+}
+function render(){ if(currentView==='overview')renderOverview(); else renderProviderView(); }
+function setView(v){ currentView=v; document.getElementById('btnOverview').classList.toggle('active',v==='overview'); document.getElementById('btnProvider').classList.toggle('active',v==='provider'); render(); }
+function setStatus(s){ currentStatus=s; document.querySelectorAll('.status-pill').forEach(el=>el.classList.toggle('active',el.classList.contains(s)||(s==='all'&&el.classList.contains('all')))); render(); }
+function setProvider(v){ currentProvider=v; render(); }
+function setSort(c){ if(sortCol===c)sortDir=sortDir==='desc'?'asc':'desc'; else{sortCol=c;sortDir='desc';} render(); }
+function initProviderFilter(){ const provs=[...new Set(DATA.map(x=>x.proveedor))].sort(); const sel=document.getElementById('provFilter'); provs.forEach(p=>{const o=document.createElement('option');o.value=p;o.textContent=p;sel.appendChild(o);}); }
+
+initData();
+</script>
+</body>
+</html>
